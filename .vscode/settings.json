@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "*.yml": "ansible",
+    "*.yaml": "ansible"
+  },
+  "ansible.validation.enabled": true,
+  "ansible.ansible.path": "ansible"
+}
