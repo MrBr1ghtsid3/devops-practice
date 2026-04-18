@@ -1,6 +1,6 @@
 # DevOps Practice
 
-Personal learning repository for DevOps tooling and skills.
+Personal learning repository for DevOps tooling and skills in Linux.
 
 ## Stack
 - **Ansible** — configuration management and automation
