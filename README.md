@@ -30,3 +30,10 @@ Deploy a multi-server Flask + MySQL application behind an HTTP load balancer.
 - Ansible: core 2.16.3
 - Python: 3.12.3
 - VirtualBox + Vagrant
+
+## Documentation
+
+- [`docs/templates/`](docs/templates/) — ADR, PoC, and SoW templates
+- [`docs/decisions/`](docs/decisions/) — Architecture Decision Records
+- [`docs/poc/`](docs/poc/) — Proof of Concept reports
+- [`docs/sow/`](docs/sow/) — Statements of Work
