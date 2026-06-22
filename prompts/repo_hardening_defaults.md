@@ -5,7 +5,9 @@ repository so that `main` is protected, merges are clean, and automated workflow
 are permitted to run. In this specific case, `main` is actually called `master`.
 
 **Model used:** Claude Opus 4.8 via Claude Code
+
 **Last validated** 2026-06-17 - `gh` CLI 2.95.0 / GitHub REST API 2022-11-28
+
 **Scope note:** Branch protection, auto-delete, and Actions permissions are repository
 *settings*, not code. The assistant can generate the commands; applying them requires
 the repo owner's authenticated session (`gh auth login` or the web UI).
