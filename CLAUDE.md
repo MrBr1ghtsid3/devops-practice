@@ -25,7 +25,7 @@ Keep this file short and operational — it is loaded as context on every sessio
   complete until these pass.
 - **Idempotency:** Ansible playbooks must pass a second `--check` run with 0 changes.
 - **Documentation:** ADRs, PoCs, and SoWs use the blanks in `docs/templates/`.
-  Completed records go in `docs/adr/`, `docs/poc/`, `docs/sow/`.
+  Completed records go in `docs/`.
 - **Prompts:** reusable prompts are captured in `prompts/` following the existing
   format (purpose, model, validated-on, the prompt, caveats).
 

@@ -27,21 +27,18 @@ Personal learning repository for DevOps tooling and skills. All work happening i
 
 ### Ansible
 
-- `playbooks/` - Ansible playbooks
-- `roles/` - reusable Ansible roles
-- `inventories/` - inventory files (hosts, groups, variables)
-- `collections/` - where automation modules and plugins live
+- [`playbooks/`](playbooks/) - Ansible playbooks
+- [`roles/`](roles/) - reusable Ansible roles
+- [`inventories/`](inventories/) - inventory files (hosts, groups, variables)
+- [`collections/`](collections/) - where automation modules and plugins live
 
 ### PowerShell
 
-- `powershell/` - a collection of custom PS modules
+- [`powershell/`](powershell/) - a collection of custom PS modules
 
 ### Documentation
 
 - [`docs/templates/`](docs/templates/) - ADR, PoC, and SoW templates
-- [`docs/adr/`](docs/adr/)
-- [`docs/poc/`](docs/poc/)
-- [`docs/sow/`](docs/sow/)
 
 ### AI Prompts
 
