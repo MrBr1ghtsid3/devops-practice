@@ -1,0 +1,94 @@
+name: "Terraform — Deploy PROD"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  plan:
+    name: "plan prod"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform/environments/prod
+
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID_PROD }}
+      ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID_PROD }}
+      TF_VAR_subscription_id: ${{ vars.ARM_SUBSCRIPTION_ID_PROD }}
+      TF_VAR_admin_ssh_public_key: ${{ secrets.ADMIN_SSH_PUBLIC_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.ARM_CLIENT_ID_PROD }}
+          tenant-id: ${{ vars.ARM_TENANT_ID }}
+          subscription-id: ${{ vars.ARM_SUBSCRIPTION_ID_PROD }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: init
+        run: terraform init
+
+      - name: plan
+        run: terraform plan -var-file=prod.tfvars -out=tfplan
+
+      - name: upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-prod
+          path: terraform/environments/prod/tfplan
+          retention-days: 1
+
+  apply:
+    name: "apply prod"
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: production  # required-reviewer gate — configure in repo settings
+
+    defaults:
+      run:
+        working-directory: terraform/environments/prod
+
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID_PROD }}
+      ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID_PROD }}
+      TF_VAR_subscription_id: ${{ vars.ARM_SUBSCRIPTION_ID_PROD }}
+      TF_VAR_admin_ssh_public_key: ${{ secrets.ADMIN_SSH_PUBLIC_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.ARM_CLIENT_ID_PROD }}
+          tenant-id: ${{ vars.ARM_TENANT_ID }}
+          subscription-id: ${{ vars.ARM_SUBSCRIPTION_ID_PROD }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-prod
+          path: terraform/environments/prod
+
+      - name: init
+        run: terraform init
+
+      - name: apply
+        run: terraform apply tfplan
