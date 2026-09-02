@@ -23,3 +23,12 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Service principals
+*.pfx
+
+#Azure CLI cashed items
+.azure/
