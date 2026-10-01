@@ -23,3 +23,11 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# HerdLog
+herdlog/infra/terraform.tfvars
+herdlog/infra/tfplan
+herdlog/api/bin/
+herdlog/api/obj/
+herdlog/api/local.settings.json
+zap-report*.html

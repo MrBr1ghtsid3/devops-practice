@@ -1,0 +1,53 @@
+<policies>
+  <!--
+    HerdLog API policy - APIM's rulebook, run on every request, top to bottom.
+  
+    1. rate-limit     : more than N calls a minute from one subscription key -> 429
+    2. validate-jwt   : is the token REAL?  (signature, issuer, audience, expiry, scope) -> else 401
+    3. set-header     : add the Function's key, so callers never need to know it
+  -->
+  <inbound>
+    <base />
+
+    <!-- 1. Throttle first, so floods are stopped before any crypto work. -->
+    <rate-limit calls="${rate_limit}" renewal-period="60" />
+
+    <!-- 2. The check the Function itself does NOT do. -->
+    <validate-jwt header-name="Authorization"
+                  failed-validation-httpcode="401"
+                  failed-validation-error-message="Unauthorized: missing or invalid token"
+                  require-expiration-time="true"
+                  require-signed-tokens="true">
+      <!-- Where APIM fetches HerdLog Customers' public signing keys. -->
+      <openid-config url="https://${tenant_subdomain}.ciamlogin.com/${tenant_id}/v2.0/.well-known/openid-configuration" />
+      <!-- Token must be meant for herdlog-api ... -->
+      <audiences>
+        <audience>${api_client_id}</audience>
+      </audiences>
+      <!-- ... and issued by HerdLog Customers, nobody else. -->
+      <issuers>
+        <issuer>https://${tenant_id}.ciamlogin.com/${tenant_id}/v2.0</issuer>
+      </issuers>
+      <!-- ... and the calling app must have been granted Herds.Read. -->
+      <required-claims>
+        <claim name="scp" match="any" separator=" ">
+          <value>Herds.Read</value>
+        </claim>
+      </required-claims>
+    </validate-jwt>
+
+    <!-- 3. Hand the Function its key. {{...}} = an APIM "named value", stored as a secret. -->
+    <set-header name="x-functions-key" exists-action="override">
+      <value>{{herdlog-func-key}}</value>
+    </set-header>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

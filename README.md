@@ -36,6 +36,10 @@ Personal learning repository for DevOps tooling and skills. All work happening i
 
 - [`powershell/`](powershell/) - a collection of custom PS modules
 
+### HerdLog (Azure)
+
+- [`herdlog/`](herdlog/) - customer identity lab: Entra External ID, API Management, Azure Functions (C#), Terraform, Azure DevOps pipeline
+
 ### Documentation
 
 - [`docs/templates/`](docs/templates/) - ADR, PoC, and SoW templates
@@ -66,3 +70,14 @@ A concept on how to handle certain administrative tasks in a Hybrid Environment 
 ### 3. Deploying Azure Resource using Terraform
 
 My take on how to separate Live (prod) from Sandbox (dev) environments via Terraform.
+
+### 4. Customer Identity with Microsoft Entra External ID (HerdLog)
+
+A made-up livestock service where customers sign themselves up and an API shows vets more than farmers.
+
+- External tenant with self sign-up, a scope and an app role
+- C# Azure Function (.NET 10, Flex Consumption) deciding by the token's role
+- API Management validating tokens, rate limiting and adding HSTS
+- Terraform for the Azure side; Azure DevOps pipeline with SonarQube Cloud and ZAP
+
+Write-up: [`docs/poc-001-herdlog-external-id.md`](docs/poc-001-herdlog-external-id.md)
