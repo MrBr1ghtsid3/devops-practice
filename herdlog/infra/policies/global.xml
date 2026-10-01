@@ -1,0 +1,27 @@
+<policies>
+  <!--
+    GLOBAL policy ("All APIs") - runs for EVERY request to the gateway,
+    before and after each API's own policy (which joins in at <base />).
+
+    Job: add HSTS to every response, so browsers only ever use HTTPS here.
+      outbound : normal responses (200 ...)
+      on-error : responses APIM creates itself - 401 bad token, 429 rate limit,
+                 404 unknown URL (/, /robots.txt ...). These skip outbound.
+  -->
+  <inbound>
+  </inbound>
+  <backend>
+    <!-- Must stay: this is what sends the request on to the Function. -->
+    <forward-request />
+  </backend>
+  <outbound>
+    <set-header name="Strict-Transport-Security" exists-action="override">
+      <value>max-age=31536000; includeSubDomains</value>
+    </set-header>
+  </outbound>
+  <on-error>
+    <set-header name="Strict-Transport-Security" exists-action="override">
+      <value>max-age=31536000; includeSubDomains</value>
+    </set-header>
+  </on-error>
+</policies>

@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Identifiers, not secrets,
+# but they stay out of a public repo all the same.
+
+subscription_id           = "<your-subscription-id>"
+publisher_email           = "<your-email>"                # APIM requires a contact
+external_tenant_id        = "<external-tenant-id>"        # the 'tid' claim
+external_tenant_subdomain = "<subdomain>"                 # <subdomain>.ciamlogin.com
+api_client_id             = "<herdlog-api-client-id>"     # the 'aud' claim
+
+# Optional overrides
+# location                    = "uksouth"
+# resource_group_name         = "rg-herdlog-lab"
+# rate_limit_calls_per_minute = 10

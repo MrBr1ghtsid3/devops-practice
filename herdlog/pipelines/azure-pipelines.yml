@@ -1,0 +1,160 @@
+---
+# HerdLog lab - CI/CD pipeline
+#
+#   Stage 1  Build   : SonarCloud prepare -> dotnet build -> SonarCloud analyse
+#                      -> quality gate (stops here if it fails) -> package zip
+#   Stage 2  Deploy  : zip -> Function App (Flex Consumption)
+#   Stage 3  Scan    : ZAP baseline scan of the public APIM URL
+#                      (warns, never fails)
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - herdlog/api
+      - herdlog/infra
+      - herdlog/pipelines/azure-pipelines.yml
+
+pr: none
+
+pool:
+  # Microsoft-hosted; uses the free 1,800 minutes a month
+  vmImage: ubuntu-latest
+
+variables:
+  # --- names, not secrets ---
+  # ADO service connection to SonarQube Cloud
+  sonarConnection: sonarcloud-herdlog
+  sonarOrganization: <your-sonarcloud-org>
+  sonarProjectKey: <your-sonarcloud-project-key>
+  # ADO service connection to Azure, scoped to the resource group only
+  azureConnection: azure-herdlog
+  # terraform output function_app_name
+  functionAppName: <your-function-app-name>
+  # terraform output apim_herds_url
+  apimUrl: <your-apim-herds-url>
+  projectPath: herdlog/api/api.csproj
+
+stages:
+  # ------------------------------------------------------------------
+  - stage: Build
+    displayName: 'Quality + Build'
+    jobs:
+      - job: build
+        displayName: 'SonarCloud + dotnet build'
+        steps:
+          - checkout: self
+            # full history: SonarQube Cloud needs it to tell new code from old
+            fetchDepth: 0
+
+          - task: UseDotNet@2
+            displayName: 'Install .NET 10 SDK'
+            inputs:
+              packageType: sdk
+              version: '10.0.x'
+
+          # 1. Tell SonarQube Cloud a scan is starting.
+          #    For C# it must wrap the build.
+          - task: SonarCloudPrepare@4.2.6
+            displayName: 'SonarCloud: prepare'
+            inputs:
+              SonarCloud: $(sonarConnection)
+              organization: $(sonarOrganization)
+              scannerMode: dotnet
+              projectKey: $(sonarProjectKey)
+              projectName: herdlog-lab
+              # wait for the quality gate; fail the pipeline if the gate fails
+              extraProperties: |
+                sonar.qualitygate.wait=true
+
+          # 2. Build (SonarCloud watches this).
+          - script: dotnet build $(projectPath) --configuration Release
+            displayName: 'dotnet build'
+
+          # 3. Send the results to SonarCloud and wait for the verdict.
+          - task: SonarCloudAnalyze@4.2.6
+            displayName: 'SonarCloud: analyse + quality gate'
+
+          # 4. Show the gate result on the pipeline summary page.
+          - task: SonarCloudPublish@4.2.6
+            displayName: 'SonarCloud: publish result'
+            inputs:
+              pollingTimeoutSec: '300'
+
+          # 5. Package the Function for deployment.
+          - script: >-
+              dotnet publish $(projectPath) --configuration Release
+              --output $(Build.ArtifactStagingDirectory)/api
+            displayName: 'dotnet publish'
+
+          - task: ArchiveFiles@2
+            displayName: 'Zip the Function'
+            inputs:
+              rootFolderOrFile: $(Build.ArtifactStagingDirectory)/api
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/api.zip
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Keep the zip for the next stage'
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/api.zip
+              artifact: function
+
+  # ------------------------------------------------------------------
+  - stage: Deploy
+    displayName: 'Deploy to Azure'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: deploy
+        displayName: 'Deploy Function (Flex)'
+        steps:
+          - checkout: none
+
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: function
+              path: $(Pipeline.Workspace)/function
+
+          # Flex Consumption needs task version 2, Linux, and isFlexConsumption.
+          - task: AzureFunctionApp@2
+            displayName: 'Deploy to $(functionAppName)'
+            inputs:
+              azureSubscription: $(azureConnection)
+              appType: functionAppLinux
+              isFlexConsumption: true
+              appName: $(functionAppName)
+              package: $(Pipeline.Workspace)/function/api.zip
+
+  # ------------------------------------------------------------------
+  - stage: Scan
+    displayName: 'Security scan (ZAP)'
+    dependsOn: Deploy
+    condition: succeeded()
+    jobs:
+      - job: zap
+        displayName: 'ZAP baseline scan'
+        steps:
+          - checkout: none
+
+          # Baseline = look, don't attack.
+          # -I = warnings do not fail the pipeline.
+          - script: |
+              mkdir -p $(Build.ArtifactStagingDirectory)/zap
+              chmod 777 $(Build.ArtifactStagingDirectory)/zap
+              docker run --rm \
+                -v $(Build.ArtifactStagingDirectory)/zap:/zap/wrk/:rw \
+                ghcr.io/zaproxy/zaproxy:stable \
+                zap-baseline.py -t $(apimUrl) -r zap-report.html -I
+            displayName: 'ZAP baseline against APIM'
+            continueOnError: true   # report findings, never block (for now)
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Keep the ZAP report'
+            condition: always()
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/zap
+              artifact: zap-report
